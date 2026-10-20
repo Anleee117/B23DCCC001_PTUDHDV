@@ -1,0 +1,112 @@
+{
+  "info": {
+    "name": "Tình huống 3 - Duy trì kết nối",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "200 thanh toán, 10 yêu cầu cùng lúc",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const fee = pm.collectionVariables.get('feeUrl');",
+              "const bank = pm.collectionVariables.get('bankUrl');",
+              "const send = (o) => new Promise((resolve) => pm.sendRequest(o, (err, res) => resolve({ err, res })));",
+              "const pay = async (id, amount) => {",
+              "  const r = await send({ url: fee + '/students/' + id + '/payments', method: 'POST', header: { 'Content-Type': 'application/json' }, body: { mode: 'raw', raw: JSON.stringify({ amount }) } });",
+              "  if (!r.res) return { code: 0, ms: 0, body: null };",
+              "  let body = null;",
+              "  try { body = r.res.json(); } catch (e) { body = null; }",
+              "  return { code: r.res.code, ms: r.res.responseTime, body };",
+              "};",
+              "const getJson = async (url) => { const r = await send({ url, method: 'GET' }); return r.res.json(); };",
+              "const pool = async (total, concurrency, fn) => {",
+              "  const results = [];",
+              "  let next = 0;",
+              "  const workers = Array.from({ length: concurrency }, async () => {",
+              "    while (next < total) { const k = next++; results[k] = await fn(k); }",
+              "  });",
+              "  await Promise.all(workers);",
+              "  return results;",
+              "};",
+              "const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));",
+              "(async () => {",
+              "const before = await getJson(bank + '/stats');",
+              "const t = Date.now();",
+              "const results = await pool(200, 10, () => pay(1, 1000));",
+              "const total = Date.now() - t;",
+              "const after = await getJson(bank + '/stats');",
+              "const ok = results.filter((r) => r.code === 201).length;",
+              "console.log('total ms', total, 'success', ok, 'connections', before.connections, '->', after.connections);",
+              "pm.test('200/200 thanh toán thành công', () => pm.expect(ok).to.eql(200));",
+              "pm.test('Số kết nối TCP mở ≤ 20', () => pm.expect(after.connections - before.connections).to.be.at.most(20));",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{feeUrl}}/students/1/fees"
+      }
+    },
+    {
+      "name": "Nhàn rỗi 6 giây rồi thanh toán tiếp",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const fee = pm.collectionVariables.get('feeUrl');",
+              "const bank = pm.collectionVariables.get('bankUrl');",
+              "const send = (o) => new Promise((resolve) => pm.sendRequest(o, (err, res) => resolve({ err, res })));",
+              "const pay = async (id, amount) => {",
+              "  const r = await send({ url: fee + '/students/' + id + '/payments', method: 'POST', header: { 'Content-Type': 'application/json' }, body: { mode: 'raw', raw: JSON.stringify({ amount }) } });",
+              "  if (!r.res) return { code: 0, ms: 0, body: null };",
+              "  let body = null;",
+              "  try { body = r.res.json(); } catch (e) { body = null; }",
+              "  return { code: r.res.code, ms: r.res.responseTime, body };",
+              "};",
+              "const getJson = async (url) => { const r = await send({ url, method: 'GET' }); return r.res.json(); };",
+              "const pool = async (total, concurrency, fn) => {",
+              "  const results = [];",
+              "  let next = 0;",
+              "  const workers = Array.from({ length: concurrency }, async () => {",
+              "    while (next < total) { const k = next++; results[k] = await fn(k); }",
+              "  });",
+              "  await Promise.all(workers);",
+              "  return results;",
+              "};",
+              "const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));",
+              "(async () => {",
+              "await sleep(6000);",
+              "const results = await pool(5, 1, () => pay(1, 1000));",
+              "pm.test('5 thanh toán sau khi nhàn rỗi đều thành công', () => pm.expect(results.every((r) => r.code === 201)).to.be.true);",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{feeUrl}}/students/1/fees"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "feeUrl",
+      "value": "http://localhost:4001"
+    },
+    {
+      "key": "bankUrl",
+      "value": "http://localhost:4002"
+    }
+  ]
+}

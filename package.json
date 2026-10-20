@@ -1,0 +1,12 @@
+{
+  "name": "lab3-fee-bank",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "bank": "node bank.js",
+    "fee": "node fee.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

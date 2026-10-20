@@ -1,0 +1,85 @@
+{
+  "info": {
+    "name": "Tình huống 4c - Bị từ chối vì vượt hạn mức",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Lấy số liệu ngân hàng trước",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('requestsBefore', pm.response.json().requests);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{bankUrl}}/stats"
+      }
+    },
+    {
+      "name": "POST thanh toán 25.000.000đ",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Trả 402', () => pm.response.to.have.status(402));",
+              "pm.test('status FAILED', () => pm.expect(pm.response.json().status).to.eql('FAILED'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"amount\":25000000}"
+        },
+        "url": "{{feeUrl}}/students/1/payments"
+      }
+    },
+    {
+      "name": "Lấy số liệu ngân hàng sau",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Ngân hàng chỉ nhận đúng 1 yêu cầu', () => pm.expect(pm.response.json().requests - Number(pm.collectionVariables.get('requestsBefore'))).to.eql(1));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{bankUrl}}/stats"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "feeUrl",
+      "value": "http://localhost:4001"
+    },
+    {
+      "key": "bankUrl",
+      "value": "http://localhost:4002"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "info": {
+    "name": "Tình huống 4b - Lỗi 500 tạm thời (FAIL_RATE=0.3)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "60 thanh toán lần lượt",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const fee = pm.collectionVariables.get('feeUrl');",
+              "const bank = pm.collectionVariables.get('bankUrl');",
+              "const send = (o) => new Promise((resolve) => pm.sendRequest(o, (err, res) => resolve({ err, res })));",
+              "const pay = async (id, amount) => {",
+              "  const r = await send({ url: fee + '/students/' + id + '/payments', method: 'POST', header: { 'Content-Type': 'application/json' }, body: { mode: 'raw', raw: JSON.stringify({ amount }) } });",
+              "  if (!r.res) return { code: 0, ms: 0, body: null };",
+              "  let body = null;",
+              "  try { body = r.res.json(); } catch (e) { body = null; }",
+              "  return { code: r.res.code, ms: r.res.responseTime, body };",
+              "};",
+              "const getJson = async (url) => { const r = await send({ url, method: 'GET' }); return r.res.json(); };",
+              "const pool = async (total, concurrency, fn) => {",
+              "  const results = [];",
+              "  let next = 0;",
+              "  const workers = Array.from({ length: concurrency }, async () => {",
+              "    while (next < total) { const k = next++; results[k] = await fn(k); }",
+              "  });",
+              "  await Promise.all(workers);",
+              "  return results;",
+              "};",
+              "const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));",
+              "(async () => {",
+              "const statsBefore = await getJson(bank + '/stats');",
+              "const debtBefore = (await getJson(fee + '/students/1/fees')).debt;",
+              "const results = [];",
+              "for (let i = 0; i < 60; i++) results.push(await pay(1, 1000));",
+              "const statsAfter = await getJson(bank + '/stats');",
+              "const debtAfter = (await getJson(fee + '/students/1/fees')).debt;",
+              "const paid = results.filter((r) => r.code === 201).length;",
+              "const notPaid = results.filter((r) => r.code !== 201);",
+              "console.log('PAID', paid, 'not paid', notPaid.length, 'charges', statsAfter.charges - statsBefore.charges, 'duplicates', statsAfter.duplicates);",
+              "pm.test('duplicates = 0', () => pm.expect(statsAfter.duplicates).to.eql(0));",
+              "pm.test('≥ 54/60 thanh toán thành công', () => pm.expect(paid).to.be.at.least(54));",
+              "pm.test('Số lần trừ tiền đúng bằng số lệnh PAID', () => pm.expect(statsAfter.charges - statsBefore.charges).to.eql(paid));",
+              "pm.test('Công nợ chỉ giảm đúng tiền của các lệnh PAID', () => pm.expect(debtBefore - debtAfter).to.eql(paid * 1000));",
+              "pm.test('Mỗi thanh toán ≤ 4,5 giây', () => pm.expect(Math.max(...results.map((r) => r.ms))).to.be.at.most(4500));",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{feeUrl}}/students/1/fees"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "feeUrl",
+      "value": "http://localhost:4001"
+    },
+    {
+      "key": "bankUrl",
+      "value": "http://localhost:4002"
+    }
+  ]
+}

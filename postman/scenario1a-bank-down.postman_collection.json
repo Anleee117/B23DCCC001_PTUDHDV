@@ -1,0 +1,73 @@
+{
+  "info": {
+    "name": "Tình huống 1a - Ngân hàng tắt",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "POST thanh toán khi ngân hàng tắt",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Trả 503', () => pm.response.to.have.status(503));",
+              "pm.test('JSON có error, paymentId, status', () => {",
+              "  const b = pm.response.json();",
+              "  pm.expect(b).to.have.property('error');",
+              "  pm.expect(b).to.have.property('paymentId');",
+              "  pm.expect(b.status).to.eql('FAILED');",
+              "});",
+              "pm.test('Dưới 1,5 giây', () => pm.expect(pm.response.responseTime).to.be.below(1500));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"amount\":100000}"
+        },
+        "url": "{{feeUrl}}/students/1/payments"
+      }
+    },
+    {
+      "name": "GET công nợ khi ngân hàng tắt",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Trả 200', () => pm.response.to.have.status(200));",
+              "pm.test('Nhanh, dưới 300ms', () => pm.expect(pm.response.responseTime).to.be.below(300));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{feeUrl}}/students/1/fees"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "feeUrl",
+      "value": "http://localhost:4001"
+    },
+    {
+      "key": "bankUrl",
+      "value": "http://localhost:4002"
+    }
+  ]
+}

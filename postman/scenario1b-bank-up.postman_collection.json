@@ -1,0 +1,66 @@
+{
+  "info": {
+    "name": "Tình huống 1b - Ngân hàng chạy lại",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "POST thanh toán khi ngân hàng chạy lại",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Trả 201', () => pm.response.to.have.status(201));",
+              "pm.test('status PAID', () => pm.expect(pm.response.json().status).to.eql('PAID'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"amount\":100000}"
+        },
+        "url": "{{feeUrl}}/students/1/payments"
+      }
+    },
+    {
+      "name": "GET công nợ",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Trả 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{feeUrl}}/students/1/fees"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "feeUrl",
+      "value": "http://localhost:4001"
+    },
+    {
+      "key": "bankUrl",
+      "value": "http://localhost:4002"
+    }
+  ]
+}
